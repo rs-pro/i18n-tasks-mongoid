@@ -8,9 +8,9 @@ Gem::Specification.new do |spec|
   spec.version       = I18n::Tasks::Mongoid::VERSION
   spec.authors       = ["glebtv"]
   spec.email         = ["glebtv@gmail.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
-  spec.homepage      = ""
+  spec.summary       = %q{i18n-tasks extractor (scanner) for Mongoid models}
+  spec.description   = %q{}
+  spec.homepage      = "https://github.com/rs-pro/i18n-tasks-mongoid/"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
