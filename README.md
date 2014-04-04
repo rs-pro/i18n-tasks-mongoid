@@ -1,6 +1,12 @@
 # I18n::Tasks::Mongoid
 
-TODO: Write a gem description
+Automatically fills locale data based on mongoid models and attributes.
+
+Work-in-progress. Buggy.
+
+Works by wrapping i18n-tasks gem and feeding it with data received from live Mongoid models from your app, so sometimes unwanted (non-visible by user) fields might apper in i18n data, such as version, modifier, c_at, etc.
+
+Tries to be smart about what attributes are shared between models.
 
 ## Installation
 
@@ -18,7 +24,8 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+    $ i18n-tasks-mongoid missing
+    $ i18n-tasks-mongoid add-missing ru
 
 ## Contributing
 
