@@ -1,0 +1,129 @@
+#!/usr/bin/env ruby
+
+ENV['RAILS_ENV'] = 'development'
+require File.expand_path(Dir.pwd + "/config/environment")
+Dir[Rails.root + 'app/models/**/*.rb'].each do |path|
+  require path
+end
+User
+News
+Page
+Menu
+ContactMessage
+
+
+require 'i18n/tasks'
+require 'i18n/tasks/commands'
+require 'slop'
+require 'i18n/tasks/used_keys'
+
+module I18n::Tasks::UsedKeys
+  def used_keys_group(keys)
+    models = Object.constants.reject{|sym| %i(Config).include?(sym) }.collect { |sym| Object.const_get(sym) }.select { |constant| constant.class == Class && constant.include?(Mongoid::Document) }
+    
+    all_fields = Hash.new(0)
+    models.each do |m|
+      m.fields.keys.each do |key|
+        all_fields[key] += 1
+      end
+    end
+    
+    fields = []
+    done = []
+    models.each do |m|
+      m.fields.each_pair do |key, value|
+        next if key.to_s == 'lft' || key.to_s == 'rgt' || key.to_s == 'depth' || !key.to_s.index('_content_type').nil? || !key.to_s.index('_file_name').nil? ||
+           !key.to_s.index('_file_size').nil? || !key.to_s.index('_fingerprint').nil? || !key.to_s.index('_updated_at').nil?
+           
+        if done.include?(key)
+          next
+        else
+          done << key
+        end
+        
+        if all_fields[key] > 1
+          fields << I18n::Tasks::Key.new(['attributes.' + key.to_s, key.to_s.humanize])
+        else
+          fields << I18n::Tasks::Key.new(['mongoid.attributes.' + m.model_name.i18n_key.to_s + '.' + key.to_s, key.to_s.humanize])
+        end
+      end
+    end
+    keys = keys + models.map {|m| I18n::Tasks::Key.new(['mongoid.models.' + m.model_name.i18n_key.to_s, m.model_name.i18n_key.to_s.humanize]) } + fields
+
+    ::I18n::Tasks::KeyGroup.new keys, type: :used, key_filter: scanner.key_filter
+  end
+end
+
+command = nil
+slop    = Slop.parse(help: true) do
+  on('-v', '--version', 'Print the version') {
+    puts I18n::Tasks::VERSION
+    exit
+  }
+  ::I18n::Tasks::Commands.cmds.each do |name, attr|
+    command name.tr('_', '-') do
+      description attr.desc if attr.desc
+      instance_exec(&attr.opts) if attr.opts
+      run do |opts, args|
+        command = [name, opts, args]
+      end
+    end
+  end
+end
+
+gem_paths = []
+begin
+  gem_paths << "#{Gem::Specification.find_by_name("rocket_cms").gem_dir}/config/locales/%{locale}.models.yml"
+rescue
+end
+#begin
+#  gem_paths << "#{Gem::Specification.find_by_name("rs_russian").gem_dir}/lib/russian/locale/*.yml"
+#rescue
+#end
+
+DEFAULT_CONFIG = {
+  base_locale: :ru,
+  locales: [:ru],
+  data: {
+    adapter: 'file_system',
+    read: ['config/locales/%{locale}.yml', 'config/locales/*.%{locale}.yml', 'config/locales/%{locale}.*.yml'] + gem_paths,
+    write: [[/\A(attributes|mongoid).*\z/, 'config/locales/%{locale}.models.yml'], [/\A.*\z/, 'config/locales/%{locale}.yml']]
+  }
+}
+
+require 'i18n/tasks/configuration'
+module I18n::Tasks::Configuration
+  def file_config
+    file = CONFIG_FILES.detect { |f| File.exists?(f) }
+    file = YAML.load(Erubis::Eruby.new(File.read(file)).result) if file
+    if file.presence
+      {}.with_indifferent_access.merge(file.presence || {})
+    else
+      DEFAULT_CONFIG
+    end
+  end
+end
+
+if command
+  cmd  = ::I18n::Tasks::Commands.new
+  meth = command[0]
+  opts = command[1].to_hash.reject { |k, v| v.nil? }
+  args = command[2]
+  begin
+    if opts.empty? && args.empty?
+      cmd.log_verbose "run #{meth.tr('_', '-')} without arguments"
+      cmd.send meth
+    else
+      opts = opts.merge(arguments: args) unless args.empty?
+      cmd.log_verbose "run #{meth.tr('_', '-')} with #{opts.map { |k, v| "#{k}=#{v}" } * ' '}"
+      cmd.send meth, opts
+    end
+  rescue Errno::EPIPE
+    # ignore Errno::EPIPE which is throw when pipe breaks, e.g.:
+    # i18n-tasks missing | head
+  end
+else
+  STDERR.puts Term::ANSIColor.red "Command unknown: #{ARGV[0]}" if ARGV[0]
+  puts slop.help
+  exit 64
+end
