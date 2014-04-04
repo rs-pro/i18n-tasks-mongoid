@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = I18n::Tasks::Mongoid::VERSION
   spec.authors       = ["glebtv"]
   spec.email         = ["glebtv@gmail.com"]
-  spec.summary       = %q{i18n-tasks extractor (scanner) for Mongoid models}
+  spec.summary       = %q{i18n-tasks extractor (scanner) for Mongoid models. Work in progress}
   spec.description   = %q{}
   spec.homepage      = "https://github.com/rs-pro/i18n-tasks-mongoid/"
   spec.license       = "MIT"
